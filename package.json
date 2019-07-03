@@ -1,0 +1,69 @@
+{
+	"name": "vscode-azure-devops",
+	"displayName": "vscode-azure-devops",
+	"description": "Azure Devops Pull Request Monitor",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.36.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onView:pullRequests",
+		"onView:settings"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "azure-devops",
+					"title": "Azure Devops",
+					"icon": "media/AzureDevops.svg"
+				}
+			]
+		},
+		"views": {
+			"azure-devops": [
+				{
+					"id": "pullRequests",
+					"name": "Pull Requests"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "pullRequests.refresh",
+				"title": "Refresh",
+				"icon": {
+					"light": "resources/light/refresh.svg",
+					"dark": "resources/dark/refresh.svg"
+				}
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "pullRequests.refresh",
+					"when": "view == pullRequests",
+					"group": "navigation"
+				}
+			]
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"postinstall": "node ./node_modules/vscode/bin/install",
+		"test": "npm run compile && node ./node_modules/vscode/bin/test"
+	},
+	"devDependencies": {
+		"typescript": "^3.3.1",
+		"vscode": "^1.1.28",
+		"tslint": "^5.12.1",
+		"@types/node": "^10.12.21",
+		"@types/mocha": "^2.2.42"
+	}
+}
