@@ -1,5 +1,7 @@
 # vscode-azure-devops
 
+[![Build Status](https://travis-ci.org/bvwells/vscode-azure-devops.svg?branch=master)](https://travis-ci.org/bvwells/vscode-azure-devops)
+
 This is the README for your extension "vscode-azure-devops".
 
 ## Features
