@@ -1,12 +1,22 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as azdev from "azure-devops-node-api";
+import * as GitApi from "azure-devops-node-api/GitApi";
+import * as GitInterfaces from "azure-devops-node-api/interfaces/GitInterfaces";
 
 export class PullRequestsProvider implements vscode.TreeDataProvider<PullRequest> {
 
 	private _onDidChangeTreeData: vscode.EventEmitter<PullRequest | undefined> = new vscode.EventEmitter<PullRequest | undefined>();
 	readonly onDidChangeTreeData: vscode.Event<PullRequest | undefined> = this._onDidChangeTreeData.event;
 
+	private project = ''; 
+	private url = '';
+	private token = process.env.AZURE_DEVOPS_TOKEN; // e.g "cbdeb34vzyuk5l4gxc4qfczn3lko3avfkfqyb47etahq6axpcqha"; 
+	private connection: azdev.WebApi;
+
 	constructor(private workspaceRoot: string) {
+		let authHandler = azdev.getPersonalAccessTokenHandler(this.token);
+		this.connection = new azdev.WebApi(this.url, authHandler);
 	}
 
 	refresh(): void {
@@ -18,30 +28,44 @@ export class PullRequestsProvider implements vscode.TreeDataProvider<PullRequest
 	}
 
 	getChildren(element?: PullRequest): Thenable<PullRequest[]> {
-		const project = "";
 		if (element) {
 			return Promise.resolve([]);
 		} else {
-			return Promise.resolve(this.getPullRequests(project));
+			return this.getPullRequests();
 		}
 	}
 
 	/**
-	 * Given the Azure Devops project get all the active pull requests.
+	 * Given the Azure Devops project get all the approved active pull requests.
 	 */
-	private getPullRequests(project: string): PullRequest[] {
-
-		// call 
-		// - GET https://dev.azure.com/{organization}/{project}/_apis/git/pullrequests?api-version=5.0
-
-        var prs: PullRequest[] = [];
-		prs.push(new PullRequest("id1", "repo1", "title1", "url", vscode.TreeItemCollapsibleState.Collapsed));
+	private async getPullRequests() {
+		var prs: PullRequest[] = [];
+		let gitApiObject: GitApi.IGitApi = await this.connection.getGitApi();
+		const pullRequests = await gitApiObject.getPullRequestsByProject(this.project, undefined);
+		for (var pullRequest of pullRequests) {
+			const approved = this.isApproved(pullRequest);
+			if (!approved && pullRequest.status === GitInterfaces.PullRequestStatus.Active) {
+				prs.push(new PullRequest(pullRequest.pullRequestId.toString(), pullRequest.repository.name, pullRequest.title, pullRequest.url, vscode.TreeItemCollapsibleState.Collapsed));
+			}
+		}
 		return prs;
 	}
 
+	private isApproved(pullRequest: GitInterfaces.GitPullRequest): boolean {
+		let approved = false;
+		for (var reviewer of pullRequest.reviewers) {
+			if (reviewer.vote > 0) {
+				approved = true;
+				break;
+			} 
+		}
+		return approved;
+	}
 }
 
 export class PullRequest extends vscode.TreeItem {
+
+	private uri: vscode.Uri;
 
 	constructor(
 		public readonly pullRequestId: string,
@@ -52,6 +76,7 @@ export class PullRequest extends vscode.TreeItem {
 		public readonly command?: vscode.Command
 	) {
 		super(pullRequestId, collapsibleState);
+		this.uri = vscode.Uri.parse(url);
 	}
 
 	get tooltip(): string {
@@ -60,6 +85,10 @@ export class PullRequest extends vscode.TreeItem {
 
 	get description(): string {
 		return `${this.title}`;
+	}
+
+	get resourceUri(): vscode.Uri {
+		return this.uri;
 	}
 
 	iconPath = {
